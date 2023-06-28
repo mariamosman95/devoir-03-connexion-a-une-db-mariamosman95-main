@@ -1,0 +1,454 @@
+= Sites web transactionnels : connexion à une BD
+Antoine Moevus <antoine@moev.us>;
+:toc:
+:toc-title: Table des matières
+:source-highlighter: rouge
+:rouge-style: github
+
+
+<<<
+
+== Préparation du serveur
+
+. Initialiser le projet:
+
+[source, bash]
+----
+npm init
+----
+
+. Installer les librairies
+
+[source, bash]
+----
+npm install express mongoose cors path dotenv
+----
+
+. Créer le fichier d'entrée (``entrypoint``): `index.js`
+** manuellement, ou
+** ``touch index.js``
+
+
+. Ajouter le code de base dans `index.js`
+
+[source, js]
+----
+const express = require('express');
+const mongoose = require('mongoose');
+const cors = require('cors');
+const path = require('path')
+require('dotenv').config(); // Afin de charger le ficheir .env
+
+const app = express();
+
+app.use(cors());
+
+// Connection à MongoDB
+mongoose.connect(process.env.MONGODB_URI, { useNewUrlParser: true, useUnifiedTopology: true })
+  .then(() => {
+    console.log("Connexion à MongoDB réussie !");
+  })
+  .catch((error) => {
+    console.log("Erreur de connexion à MongoDB : " + error);
+  });
+
+app.use(express.json());
+
+app.get('/', (req, res) => {
+  res.send('Bonjour monde !');
+});
+
+const port = process.env.PORT || 3000
+app.listen(port, () => {
+  console.log(`Serveur démarré sur le port ${port}`);
+});
+----
+
+. Créer le fichier de configuration ``.env`` basé sur `sample.env`
+** S'assurer de remplir les champs dans .env avec les valeurs adéquates. Par exemple: 
+
+[source, makefile]
+----
+MONGODB_URI=mongodb://localhost:27017/nom_de_ma_base_de_donnees
+PORT=4200
+----
+
+== Explications du code de base
+
+=== ``dotenv``
+La bibliothèque `dotenv` est utilisée pour charger des variables d'environnement à partir d'un fichier `.env` dans `process.env`. Voici une explication détaillée de ces lignes de code :
+
+- `require('dotenv').config();` : Cette ligne charge le module `dotenv` et appelle la méthode `config()`. Le module `dotenv` lit le fichier `.env` dans le répertoire racine du projet et initialise les variables d'environnement. Il est important de noter que `dotenv` doit être configuré au début du fichier avant que toute autre action n'ait lieu dans votre application.
+
+- `process.env.MONGODB_URI` : Cette ligne accède à la variable d'environnement `MONGODB_URI` que nous avons définie dans le fichier `.env`. `process.env` est un objet global qui permet d'accéder aux variables d'environnement actuelles du système. En l'occurrence, `MONGODB_URI` devrait contenir l'URI de votre base de données MongoDB.
+
+- `const port = process.env.PORT || 4200` : Cette ligne déclare une constante appelée `port` et lui attribue la valeur de la variable d'environnement `PORT` si elle existe, sinon 4200 est utilisée comme valeur par défaut. C'est un exemple de l'utilisation de variables d'environnement pour configurer votre application de manière flexible. Vous pouvez définir la variable d'environnement `PORT` pour spécifier sur quel port votre application doit écouter. Si aucune valeur n'est fournie, elle utilisera le port 4200 par défaut.
+
+Le fichier `.env` est utilisé pour définir des variables d'environnement dans votre application. La syntaxe est très simple : chaque ligne du fichier définit une variable différente.
+
+==== Structure du fichier `.env`
+La structure générale d'une ligne est la suivante :
+[source, makefile]
+----
+NOM_DE_LA_VARIABLE=valeur
+----
+
+Voici quelques points à noter sur cette syntaxe :
+
+1. **NOM_DE_LA_VARIABLE** : Le nom de la variable est toujours en majuscules. Si le nom de la variable comprend plusieurs mots, ils sont généralement séparés par des underscores (_). Par exemple, `DATABASE_URL`, `APP_PORT`, `SECRET_KEY`, etc.
+
+2. **valeur** : La valeur peut être une chaîne de caractères, un nombre, un booléen ou toute autre valeur qui peut être stocké sous forme de chaîne de caractères.
+
+3. **Pas d'espaces autour du signe égal** : Il ne doit y avoir aucun espace entre le nom de la variable, le signe égal et la valeur. Par exemple, `APP_PORT=3000` est correct, tandis que `APP_PORT = 3000` n'est pas correct.
+
+4. **Pas de guillemets nécessaires** : Contrairement à de nombreux autres formats de fichiers de configuration, vous n'avez pas besoin de mettre la valeur entre guillemets, à moins que vous ne vouliez inclure des espaces dans la valeur.
+
+Un exemple de fichier `.env` peut ressembler à ceci :
+
+[source, makefile]
+----
+PORT=4200
+MONGODB_URI=mongodb://localhost:27017/mydatabase
+SECRET_KEY=mysecretkey
+----
+
+=== Mongoose
+Lien important: link:https://mongoosejs.com/docs/[Documentation Mongoose]
+
+==== Définition
+Mongoose est une bibliothèque de modélisation de données d'objet (ODM) pour MongoDB et Node.js. Elle gère les relations entre les données, fournit la validation des schémas et est utilisée pour traduire entre les objets en code et la représentation de ces objets dans MongoDB.
+
+==== Connexion à une DB
+La méthode `connect()` est une fonction de Mongoose utilisée pour établir une connexion à une base de données MongoDB. 
+
+[source,javascript]
+----
+mongoose.connect('mongodb://localhost/test', options);
+----
+
+- Le premier argument est l'URI de la base de données MongoDB à laquelle vous souhaitez vous connecter. Dans notre cas, nous utilisons `process.env.MONGODB_URI`, qui est une variable d'environnement définie dans le fichier `.env`. Cette pratique est courante, car elle évite de coder en dur l'URI de la base de données dans le code, ce qui pourrait être un risque pour la sécurité.
+- Le deuxième argument est un objet d'options. Dans notre cas, nous utilisons deux options : `useNewUrlParser` et `useUnifiedTopology`. L'option `useNewUrlParser` demande à Mongoose d'utiliser le nouveau parseur d'URL de Node.js. L'option `useUnifiedTopology` demande à Mongoose d'utiliser le nouveau moteur de gestion de la topologie du serveur MongoDB. Ces deux options sont généralement nécessaires pour éviter les avertissements obsolètes dans la console.
+
+==== Les URI MongoDB 
+
+L'URI (Uniform Resource Identifier) est une chaîne de caractères compacte qui identifie une ressource nécessaire à votre application. Pour MongoDB, elle est utilisée pour identifier où se trouve votre base de données.
+
+Voici quelques exemples :
+
+- URI pour une instance locale de MongoDB : `mongodb://localhost:27017/maBaseDeDonnees`. Ici, `localhost` est l'hôte, `27017` est le port (par défaut pour MongoDB), et `maBaseDeDonnees` est le nom de votre base de données.
+
+- URI pour une base de données hébergée sur MongoDB Atlas : `mongodb+srv://username:password@clustername.mongodb.net/database`. Dans ce cas, `username` et `password` sont vos identifiants pour MongoDB Atlas, `clustername` est le nom de votre cluster sur Atlas, et `database` est le nom de votre base de données. Remarquez le protocole `mongodb+srv` utilisé pour les connexions à Atlas.
+
+Dans les deux cas, l'URI est généralement stocké dans une variable d'environnement pour des raisons de sécurité. Cela permet de ne pas exposer les détails sensibles de votre base de données (comme vos identifiants de connexion) dans votre code.
+
+==== Options de la méthode connect() 
+
+Lors de l'établissement d'une connexion à MongoDB à l'aide de Mongoose, la méthode `connect()` peut accepter un objet d'options en deuxième argument. Cet objet peut contenir plusieurs propriétés qui permettent de personnaliser le comportement de la connexion. Voici quelques options couramment utilisées :
+
+- `useNewUrlParser` : Si défini à `true`, Mongoose utilisera le nouveau parseur d'URL de MongoDB au lieu de l'ancien. Cela élimine certains avertissements dépréciés et assure une compatibilité avec les futurs changements dans MongoDB.
+
+- `useUnifiedTopology` : Si défini à `true`, Mongoose utilisera le nouveau moteur de gestion de la topologie de MongoDB au lieu de l'ancien. Comme pour `useNewUrlParser`, cela élimine certains avertissements dépréciés et assure une compatibilité avec les futurs changements dans MongoDB.
+
+- `useFindAndModify` : Par défaut, cette option est définie à `true`, et Mongoose utilise les méthodes `findAndModify()` de MongoDB pour les opérations `findOneAndUpdate()` et `findOneAndRemove()`. Si vous définissez cette option à `false`, Mongoose utilisera les méthodes `findOneAndUpdate()` et `findOneAndDelete()` de MongoDB à la place, qui sont plus modernes.
+
+- `useCreateIndex` : Si défini à `true`, Mongoose utilisera `createIndex()` au lieu de `ensureIndex()` pour créer des index, car la méthode `ensureIndex()` est dépréciée.
+
+Voici comment vous pouvez passer ces options lors de l'établissement de la connexion :
+
+[source,javascript]
+----
+mongoose.connect(process.env.MONGODB_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+  useFindAndModify: false,
+  useCreateIndex: true
+})
+.then(() => {
+  console.log("Connexion à MongoDB réussie !");
+})
+.catch((error) => {
+  console.log("Erreur de connexion à MongoDB : " + error);
+});
+----
+
+== Interaction avec la base de données
+
+=== Les Schémas Mongoose
+Lien: link:https://mongoosejs.com/docs/schematypes.html[Les types de schéma]
+
+Un schéma Mongoose est une structure qui définit la forme des documents dans une collection MongoDB. Il vous permet de définir les champs stockés dans chaque document avec leur type de données et d'autres propriétés.
+
+Voici quelques-uns des types de données les plus couramment utilisés dans Mongoose :
+
+- String: Pour les données textuelles.
+- Number: Pour les données numériques, entières ou à virgule flottante.
+- Date: Pour les dates.
+- Buffer: Pour les données binaires.
+- Boolean: Pour les valeurs booléennes, vrai ou faux.
+- ObjectID: Pour les valeurs qui sont des ID de documents.
+- Array: Pour les listes de valeurs.
+
+Voici un exemple de schéma pour une collection d'utilisateurs :
+
+[source,javascript]
+----
+const mongoose = require('mongoose');
+
+const utilisateurSchema = mongoose.Schema({
+  nom: { type: String, required: true },
+  email: { type: String, required: true },
+  motDePasse: { type: String, required: true }
+});
+
+module.exports = mongoose.model('Utilisateur', utilisateurSchema);
+----
+
+Dans cet exemple, `nom`, `email` et `motDePasse` sont tous des champs de type String et sont marqués comme obligatoires (`required: true`).
+
+=== Création d'un schéma de données pour un contact avec Mongoose
+
+link:https://mongoosejs.com/docs/guide.html[Documentation sur les schémas] 
+
+Un schéma en Mongoose définit la structure des documents qui seront sauvegardés dans une collection MongoDB. Il spécifie les champs que ces documents devront avoir ainsi que leur type. 
+
+Pour créer un schéma de contact, suivez les étapes suivantes :
+
+[source,javascript]
+----
+// 1. Importer mongoose
+const mongoose = require('mongoose');
+
+// 2. Créer le schéma de contact
+const ContactSchema = new mongoose.Schema({
+  nom: { type: String, required: true },
+  prenom: { type: String, required: true },
+  telephone: { type: String },
+  langue: { type: String, required: true },
+  email: { type: String, required: true }
+});
+
+// 3. Créer le modèle de contact
+const Contact = mongoose.model('Contact', ContactSchema);
+----
+
+=== Sauvegarde d'une instance 
+
+Une fois le modèle de contact créé, vous pouvez créer une nouvelle instance de contact et la sauvegarder dans la base de données comme suit :
+
+[source,javascript]
+----
+// 1. Créer une nouvelle instance de contact
+const unContact = new Contact({
+  nom: 'Dupont',
+  prenom: 'Jean',
+  telephone: '0123456789',
+  langue: 'fr',
+  email: 'jean.dupont@example.com'
+});
+
+// 2. Sauvegarder l'instance de contact dans la base de données
+unContact.save()
+  .then(() => {
+    console.log('Contact sauvegardé avec succès !');
+  })
+  .catch((error) => {
+    console.error('Erreur lors de la sauvegarde du contact :', error);
+  });
+----
+
+Dans ce code, nous créons une nouvelle instance de l'objet `Contact` à l'aide du mot-clé `new`. Le mot-clé `new` est utilisé en JavaScript pour créer une instance d'un objet utilisateur (défini par une classe ou une fonction constructeur).
+
+Nous passons un objet littéral à `Contact` avec les informations nécessaires pour notre nouveau contact. Chaque propriété de cet objet correspond à un champ de notre schéma `Contact` que nous avons défini précédemment.
+
+Ensuite, nous appelons la méthode `save()` sur notre instance `unContact`. Cette méthode est fournie par Mongoose et elle sauvegarde l'instance dans la base de données à laquelle nous nous sommes connecté.
+
+`save()` renvoie une promesse, qui se résout une fois que l'instance a été sauvegardée dans la base de données. Nous utilisons donc `.then()` pour définir ce qui doit se passer une fois que la promesse est résolue (c'est-à-dire que le contact a été sauvegardé), et `.catch()` pour définir ce qui doit se passer si une erreur se produit lors de la sauvegarde du contact.
+
+
+== Opérations CRUD avec Mongoose
+
+Mongoose fournit de nombreuses méthodes pour effectuer des opérations CRUD (Créer, Lire, Mettre à jour et Supprimer) sur des modèles, tel que ``Contact``. Voici quelques-unes de ces méthodes:
+
+=== Créer (Create)
+
+Comme nous l'avons vu précédemment, vous pouvez créer de nouvelles instances d'un modèle et les sauvegarder dans la base de données à l'aide de la méthode `save()`.
+
+[source,javascript]
+----
+const contact = new Contact({/*...*/});
+contact.save();
+----
+
+=== Lire (Read)
+
+Vous pouvez lire des données de la base de données en utilisant des méthodes comme `find()`, `findOne()`, et `findById()`.
+
+[source,javascript]
+----
+// Trouver tous les contacts
+Contact.find().then(contacts => console.log(contacts));
+
+// Trouver un contact spécifique
+Contact.findOne({ nom: 'Dupont' }).then(contact => console.log(contact));
+
+// Trouver un contact par son ID
+Contact.findById('someId').then(contact => console.log(contact));
+----
+
+=== Mettre à jour partiellement (UPDATE et PATCH)
+
+Vous pouvez mettre à jour des données dans la base de données en utilisant des méthodes comme `updateOne()`, `updateMany()`, `findByIdAndUpdate()`, ou ``findOneAndReplace()``.
+
+[source,javascript]
+----
+// Mettre à jour un contact spécifique
+Contact.updateOne({ nom: 'Dupont' }, { email: 'new.email@example.com' });
+
+// Mettre à jour plusieurs contacts
+Contact.updateMany({ langue: 'Français' }, { langue: 'Anglais' });
+
+// Mettre à jour un contact par son ID
+Contact.findByIdAndUpdate('someId', { email: 'new.email@example.com' });
+
+// Remplacer un contact
+Contact.findOneAndReplace({ nom: 'Dupont' }, { nom: 'Dupont', email: 'new.email@example.com', telephone: '1234567890' });
+----
+
+=== Supprimer (Delete)
+
+Vous pouvez supprimer des données de la base de données en utilisant des méthodes comme `deleteOne()`, `deleteMany()`, et `findByIdAndDelete()`.
+
+[source,javascript]
+----
+// Supprimer un contact spécifique
+Contact.deleteOne({ nom: 'Dupont' });
+
+// Supprimer plusieurs contacts
+Contact.deleteMany({ langue: 'Anglais' });
+
+// Supprimer un contact par son ID
+Contact.findByIdAndDelete('someId');
+----
+
+
+== Organisation du code avec le Modèle-Vue-Contrôleur (MVC)
+
+Le MVC est une architecture logicielle qui sépare une application en trois parties principales : les modèles, les vues, et les contrôleurs. Cela aide à organiser le code en le séparant en plusieurs composants qui ont des responsabilités spécifiques. 
+
+* Le Modèle représente la structure des données et les règles d'affaires. Il est responsable de la récupération, de l'insertion, de la mise à jour et de la suppression des données dans la base de données.
+* La Vue est responsable de ce que l'utilisateur voit. Elle présente les données au client sous une forme lisible.
+* Le Contrôleur agit comme un intermédiaire entre le Modèle et la Vue. Il traite les requêtes du client, interagit avec le Modèle pour obtenir les données, et met à jour la Vue en conséquence.
+
+Pour un projet Mongoose et Express.js, le MVC peut être structuré comme suit :
+
+=== Modèles (Models)
+
+Avec Mongoose, vous définissez des Modèles qui correspondent à des collections de documents dans MongoDB. Par exemple :
+
+.Fichier `models/Contact.js`
+[source,javascript]
+----
+const mongoose = require('mongoose');
+
+const ContactSchema = new mongoose.Schema({
+  nom: { type: String, required: true },
+  prenom: { type: String, required: true },
+  telephone: { type: String },
+  langue: { type: String, required: true },
+  email: { type: String, required: true }
+});
+
+const Contact = mongoose.model('Contact', ContactSchema);
+
+module.exports = User;
+----
+
+=== Vues (Views)
+
+Dans une application Express.js accompagnée de `Vue.js`, les vues sont gérées par ``Vue.js``. ``Vue.js`` est un framework JavaScript progressif pour la construction d'interfaces utilisateur. Au lieu de renvoyer des réponses JSON, comme on pourrait le faire dans une API REST, l'application renvoie généralement des fichiers HTML rendus avec ``Vue.js``. 
+
+Cela signifie que votre serveur Express.js se concentre sur le routage et la logique de l'application, tandis que ``Vue.js`` gère l'interface utilisateur et l'interaction utilisateur dans le navigateur. Dans ce scénario, Express.js sert principalement d'API pour votre application ``Vue.js``.
+
+``Vue.js`` utilise un système de composants pour créer des vues. Chaque vue dans votre application est généralement composée de plusieurs composants ``Vue.js``. Ces composants sont des instances de Vue avec des options prédéfinies, qui peuvent encapsuler des éléments d'interface utilisateur réutilisables.
+
+Chaque vue ou page de votre application serait un composant ``Vue.js`` qui pourrait contenir d'autres composants. Par exemple, vous pourriez avoir un composant `ContactList` pour afficher une liste d'utilisateurs et un composant `UserItem` pour afficher les détails d'un utilisateur individuel.
+
+Voici un exemple :
+
+.Fichier `ContactList.vue`
+[source, html]
+----
+<template>
+  <div>
+    <div v-for="contact in contacts" :key="contact.id">
+      <h2>{{ contact.nom }} {{ contact.prenom }}</h2>
+      <p>{{ contact.telephone }}</p>
+      <p>{{ contact.langue }}</p>
+      <p>Email: {{ contact.email }}</p>
+    </div>
+  </div>
+</template>
+
+<script>
+export default {
+  name: 'ContactList',
+  data() {
+    return {
+      contacts: [],
+    };
+  },
+  async created() {
+    try {
+      const response = await fetch('http://localhost:3000/api/contacts');
+      const data = await response.json();
+      this.contacts = data;
+    } catch (error) {
+      console.error(error);
+    }
+  },
+};
+</script>
+----
+
+=== Contrôleurs (Controllers)
+
+Les contrôleurs sont des fonctions intermédiaires qui reçoivent les requêtes HTTP, interagissent avec le modèle pour obtenir ou modifier les données, et envoient la réponse au client. Par exemple, un contrôleur pour gérer les opérations CRUD sur les utilisateurs peut ressembler à ceci :
+
+.Fichier `controllers/contact.js`
+[source,javascript]
+----
+const Contact = require('./models/Contact');
+
+exports.getContacts = (req, res) => {
+  Contact.find()
+    .then(users => res.json(users))
+    .catch(err => res.status(500).send(err));
+};
+
+exports.createContact = (req, res) => {
+  const unContact = new Contact(req.body);
+  unContact.save()
+    .then(contact => res.status(201).json(contact))
+    .catch(err => res.status(500).send(err));
+};
+
+//... autres méthodes pour update, delete, etc.
+----
+
+Ensuite, vous pouvez utiliser ces contrôleurs dans vos routes :
+
+.Fichier `routers/routerContact.js`
+[source,javascript]
+----
+const express = require('express');
+const contactController = require('./controllers/contact');
+const router = express.Router();
+
+router.get('/users', contactController.getContacts);
+router.post('/users', contactController.createContact);
+
+//... autres routes pour update, delete, etc.
+
+module.exports = router;
+----
+
